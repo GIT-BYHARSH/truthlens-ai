@@ -34,7 +34,7 @@ User input (text / image / URL)
 | 2 | Text + URL verify, Gemini JSON, evidence provider | **Done (core)** |
 | 3 | Image + EasyOCR | **Done** |
 | 4 | Full scoring wiring in live pipeline | **Done** |
-| 5 | History analytics + Plotly / dashboard | Partial (live KPIs) |
+| 5 | History analytics + Plotly / dashboard | **Done** |
 | 6 | Hardening, tests, docs polish | Ongoing |
 
 ## Quick start

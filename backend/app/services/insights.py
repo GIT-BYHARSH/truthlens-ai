@@ -85,4 +85,18 @@ def build_insights(summary: AnalyticsSummaryOut) -> list[InsightOut]:
             )
         )
 
+    if summary.category_counts:
+        top_cat, top_ccount = max(
+            summary.category_counts.items(), key=lambda item: item[1]
+        )
+        insights.append(
+            InsightOut(
+                code="TOP_CATEGORY",
+                message=(
+                    f"Most claims are currently categorized as {top_cat} "
+                    f"({top_ccount}/{total})."
+                ),
+            )
+        )
+
     return insights

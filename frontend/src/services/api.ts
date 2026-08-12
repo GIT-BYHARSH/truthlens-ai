@@ -32,9 +32,21 @@ export type AnalyticsSummary = {
   verdict_counts: Record<string, number>
   input_type_counts: Record<string, number>
   risk_counts: Record<string, number>
+  category_counts: Record<string, number>
 }
 
 export type Insight = { code: string; message: string }
+
+export type TrendPoint = {
+  day: string | null
+  count: number
+  avg_credibility: number | null
+  avg_confidence: number | null
+}
+
+export type AnalyticsTrends = {
+  points: TrendPoint[]
+}
 
 export type AdminOverview = {
   total_verifications: number
@@ -112,6 +124,7 @@ export const api = {
   health: () => request<Health>('/health'),
   analyticsSummary: () => request<AnalyticsSummary>('/analytics/summary'),
   insights: () => request<Insight[]>('/analytics/insights'),
+  analyticsTrends: () => request<AnalyticsTrends>('/analytics/trends'),
   adminOverview: () => request<AdminOverview>('/admin/overview'),
   verifyText: (text: string, sessionId?: string) =>
     request<VerificationReport>('/verify/text', {

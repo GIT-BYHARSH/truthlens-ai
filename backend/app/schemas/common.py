@@ -111,11 +111,23 @@ class AnalyticsSummaryOut(BaseModel):
     verdict_counts: dict[str, int]
     input_type_counts: dict[str, int]
     risk_counts: dict[str, int]
+    category_counts: dict[str, int] = {}
 
 
 class InsightOut(BaseModel):
     code: str
     message: str
+
+
+class TrendPointOut(BaseModel):
+    day: str | None
+    count: int
+    avg_credibility: float | None
+    avg_confidence: float | None
+
+
+class AnalyticsTrendsOut(BaseModel):
+    points: list[TrendPointOut]
 
 
 class AdminOverviewOut(BaseModel):
