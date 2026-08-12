@@ -43,8 +43,8 @@ export function AnalyticsPage() {
       <div>
         <h1 className="brand text-3xl md:text-4xl">Analytics</h1>
         <p className="mt-2 max-w-2xl text-[var(--muted)]">
-          KPIs and Plotly charts are computed from stored verifications only —
-          never fabricated.
+          KPIs and Plotly charts use completed verifications only — never
+          fabricated.
         </p>
       </div>
 
@@ -110,17 +110,20 @@ export function AnalyticsPage() {
             <CountsBarChart
               title="Verdict distribution"
               counts={summary.verdict_counts}
+              colorMode="verdict"
             />
-            <CountsBarChart title="Risk levels" counts={summary.risk_counts} />
+            <CountsBarChart
+              title="Risk levels"
+              counts={summary.risk_counts}
+              colorMode="risk"
+            />
             <CountsBarChart
               title="Input types"
               counts={summary.input_type_counts}
-              orientation="h"
             />
             <CountsBarChart
               title="Claim categories"
               counts={summary.category_counts}
-              orientation="h"
             />
           </div>
         )}

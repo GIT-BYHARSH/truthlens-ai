@@ -5,7 +5,7 @@ from sqlalchemy import Float, cast, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.enums import RiskLevel, Verdict
+from app.core.enums import PipelineStatus, RiskLevel, Verdict
 from app.models.verification import Verification
 from app.schemas.common import (
     AnalyticsSummaryOut,
@@ -18,31 +18,55 @@ from app.services.insights import build_insights
 router = APIRouter()
 
 
+def _completed_filter():
+    """Prefer finished runs with a verdict so early failures don't dominate KPIs."""
+    return (
+        Verification.pipeline_status == PipelineStatus.COMPLETED.value,
+        Verification.verdict.is_not(None),
+    )
+
+
 @router.get("/summary", response_model=AnalyticsSummaryOut)
 async def analytics_summary(db: AsyncSession = Depends(get_db)) -> AnalyticsSummaryOut:
-    total = await db.scalar(select(func.count()).select_from(Verification)) or 0
-    avg_cred = await db.scalar(select(func.avg(Verification.credibility_score)))
-    avg_conf = await db.scalar(select(func.avg(Verification.confidence_score)))
+    done = _completed_filter()
+    total = (
+        await db.scalar(
+            select(func.count()).select_from(Verification).where(*done)
+        )
+        or 0
+    )
+    avg_cred = await db.scalar(
+        select(func.avg(Verification.credibility_score)).where(*done)
+    )
+    avg_conf = await db.scalar(
+        select(func.avg(Verification.confidence_score)).where(*done)
+    )
 
     verdict_rows = await db.execute(
-        select(Verification.verdict, func.count()).group_by(Verification.verdict)
+        select(Verification.verdict, func.count())
+        .where(*done)
+        .group_by(Verification.verdict)
     )
     verdict_counts = {str(v or "UNKNOWN"): c for v, c in verdict_rows.all()}
 
     input_rows = await db.execute(
-        select(Verification.input_type, func.count()).group_by(Verification.input_type)
+        select(Verification.input_type, func.count())
+        .where(*done)
+        .group_by(Verification.input_type)
     )
     input_type_counts = {str(i): c for i, c in input_rows.all()}
 
     risk_rows = await db.execute(
-        select(Verification.risk_level, func.count()).group_by(Verification.risk_level)
+        select(Verification.risk_level, func.count())
+        .where(*done)
+        .group_by(Verification.risk_level)
     )
     risk_counts = {str(r or "UNKNOWN"): c for r, c in risk_rows.all()}
 
     category_rows = await db.execute(
-        select(Verification.claim_category, func.count()).group_by(
-            Verification.claim_category
-        )
+        select(Verification.claim_category, func.count())
+        .where(*done)
+        .group_by(Verification.claim_category)
     )
     category_counts = {
         str(cat or "uncategorized"): count for cat, count in category_rows.all()
@@ -74,7 +98,8 @@ async def analytics_insights(db: AsyncSession = Depends(get_db)) -> list[Insight
 
 @router.get("/trends", response_model=AnalyticsTrendsOut)
 async def analytics_trends(db: AsyncSession = Depends(get_db)) -> AnalyticsTrendsOut:
-    """Daily verification counts from stored data (empty until verifications exist)."""
+    """Daily verification counts from completed stored data."""
+    done = _completed_filter()
     rows = await db.execute(
         select(
             func.date_trunc("day", Verification.created_at).label("day"),
@@ -86,6 +111,7 @@ async def analytics_trends(db: AsyncSession = Depends(get_db)) -> AnalyticsTrend
                 "avg_confidence"
             ),
         )
+        .where(*done)
         .group_by("day")
         .order_by("day")
     )

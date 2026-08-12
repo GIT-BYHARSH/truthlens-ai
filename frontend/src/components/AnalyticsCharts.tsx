@@ -9,77 +9,115 @@ const COLORS = {
   muted: '#5c675f',
   accent: '#0f6b4c',
   accent2: '#c45c26',
-  line: '#d7d0c3',
-  panel: '#fffdf8',
   series: ['#0f6b4c', '#c45c26', '#2f5d8c', '#9a6b12', '#6b4c7a', '#4a7c59'],
+}
+
+const LABEL_MAP: Record<string, string> = {
+  SUPPORTED: 'Supported',
+  REFUTED: 'Refuted',
+  PARTIALLY_SUPPORTED: 'Partial',
+  INSUFFICIENT_EVIDENCE: 'Insufficient',
+  UNVERIFIED: 'Unverified',
+  LOW: 'Low',
+  MEDIUM: 'Medium',
+  HIGH: 'High',
+  CRITICAL: 'Critical',
+  text: 'Text',
+  url: 'URL',
+  image: 'Image',
+}
+
+const VERDICT_COLORS: Record<string, string> = {
+  SUPPORTED: '#0f6b4c',
+  REFUTED: '#9b2c2c',
+  PARTIALLY_SUPPORTED: '#9a6b12',
+  INSUFFICIENT_EVIDENCE: '#c45c26',
+  UNVERIFIED: '#5c675f',
+}
+
+const RISK_COLORS: Record<string, string> = {
+  LOW: '#0f6b4c',
+  MEDIUM: '#9a6b12',
+  HIGH: '#c45c26',
+  CRITICAL: '#9b2c2c',
 }
 
 const baseLayout = {
   paper_bgcolor: 'rgba(0,0,0,0)',
   plot_bgcolor: 'rgba(0,0,0,0)',
   font: { family: 'IBM Plex Sans, Segoe UI, sans-serif', color: COLORS.ink, size: 12 },
-  margin: { t: 28, r: 16, b: 48, l: 48 },
-  legend: { orientation: 'h' as const, y: 1.12 },
+  margin: { t: 12, r: 24, b: 24, l: 96 },
+}
+
+function prettyLabel(raw: string): string {
+  return LABEL_MAP[raw] ?? raw.replaceAll('_', ' ').toLowerCase()
+}
+
+function sortedEntries(counts: Record<string, number>): [string, number][] {
+  return Object.entries(counts).sort((a, b) => b[1] - a[1])
 }
 
 type CountsChartProps = {
   title: string
   counts: Record<string, number>
-  orientation?: 'v' | 'h'
+  colorMode?: 'verdict' | 'risk' | 'default'
 }
 
 export function CountsBarChart({
   title,
   counts,
-  orientation = 'v',
+  colorMode = 'default',
 }: CountsChartProps) {
-  const labels = Object.keys(counts)
-  const values = Object.values(counts)
-  if (!labels.length) {
+  const entries = sortedEntries(counts)
+  if (!entries.length) {
     return <EmptyChart title={title} />
   }
 
-  const data =
-    orientation === 'h'
-      ? [
-          {
-            type: 'bar' as const,
-            orientation: 'h' as const,
-            y: labels,
-            x: values,
-            marker: { color: COLORS.series.slice(0, labels.length) },
-            hovertemplate: '%{y}: %{x}<extra></extra>',
-          },
-        ]
-      : [
-          {
-            type: 'bar' as const,
-            x: labels,
-            y: values,
-            marker: { color: COLORS.series.slice(0, labels.length) },
-            hovertemplate: '%{x}: %{y}<extra></extra>',
-          },
-        ]
+  const keys = entries.map(([k]) => k)
+  const labels = keys.map(prettyLabel)
+  const values = entries.map(([, v]) => v)
+  const colors = keys.map((key, idx) => {
+    if (colorMode === 'verdict') return VERDICT_COLORS[key] ?? COLORS.series[idx % COLORS.series.length]
+    if (colorMode === 'risk') return RISK_COLORS[key] ?? COLORS.series[idx % COLORS.series.length]
+    return COLORS.series[idx % COLORS.series.length]
+  })
+
+  const height = Math.max(260, 56 + entries.length * 42)
 
   return (
     <ChartShell title={title}>
       <Plot
-        data={data}
+        data={[
+          {
+            type: 'bar',
+            orientation: 'h',
+            y: labels,
+            x: values,
+            text: values.map(String),
+            textposition: 'outside',
+            cliponaxis: false,
+            marker: { color: colors },
+            hovertemplate: '%{y}: %{x}<extra></extra>',
+          },
+        ]}
         layout={{
           ...baseLayout,
-          title: { text: '' },
-          xaxis: {
-            title: orientation === 'v' ? undefined : 'Count',
-            tickangle: orientation === 'v' ? -20 : 0,
-            automargin: true,
-          },
+          height,
           yaxis: {
-            title: orientation === 'h' ? undefined : 'Count',
             automargin: true,
+            categoryorder: 'array',
+            categoryarray: labels.slice().reverse(),
+          },
+          xaxis: {
+            title: 'Count',
+            rangemode: 'tozero',
+            automargin: true,
+            // room for outside bar labels
+            range: [0, Math.max(...values) * 1.18],
           },
         }}
         config={{ displayModeBar: false, responsive: true }}
-        style={{ width: '100%', height: 280 }}
+        style={{ width: '100%', height }}
         useResizeHandler
       />
     </ChartShell>
@@ -139,7 +177,9 @@ export function TrendsChart({ points }: { points: TrendPoint[] }) {
         ]}
         layout={{
           ...baseLayout,
-          margin: { ...baseLayout.margin, t: 40 },
+          margin: { t: 40, r: 48, b: 48, l: 48 },
+          height: 320,
+          legend: { orientation: 'h', y: 1.14 },
           yaxis: { title: 'Count', rangemode: 'tozero' },
           yaxis2: {
             title: 'Score',
@@ -168,7 +208,7 @@ function ChartShell({
   return (
     <div className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4">
       <h2 className="brand text-xl">{title}</h2>
-      <div className="mt-2">{children}</div>
+      <div className="mt-2 min-h-[240px]">{children}</div>
     </div>
   )
 }
