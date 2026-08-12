@@ -1,25 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { CircularMeter } from '../components/CircularMeter'
 import { api } from '../services/api'
 import type { VerificationReport } from '../services/api'
-
-function ScoreCard({
-  label,
-  value,
-  hint,
-}: {
-  label: string
-  value: string
-  hint: string
-}) {
-  return (
-    <div className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4">
-      <p className="text-xs uppercase tracking-wide text-[var(--muted)]">{label}</p>
-      <p className="brand mt-2 text-3xl">{value}</p>
-      <p className="mt-1 text-xs text-[var(--muted)]">{hint}</p>
-    </div>
-  )
-}
 
 const PIPELINE_STEPS = [
   'Input validated',
@@ -29,6 +12,22 @@ const PIPELINE_STEPS = [
   'Credibility / confidence / risk engines',
   'Action recommendation persisted',
 ]
+
+function verdictTone(verdict: string | null): string {
+  if (!verdict) return 'text-[var(--muted)]'
+  if (verdict === 'SUPPORTED') return 'text-[var(--accent)]'
+  if (verdict === 'REFUTED') return 'text-[var(--danger)]'
+  if (verdict === 'PARTIALLY_SUPPORTED') return 'text-[var(--warn)]'
+  return 'text-[var(--accent-2)]'
+}
+
+function riskTone(
+  level: string | null,
+): 'accent' | 'ember' | 'danger' | 'warn' {
+  if (level === 'HIGH' || level === 'CRITICAL') return 'danger'
+  if (level === 'MEDIUM') return 'warn'
+  return 'accent'
+}
 
 export function ReportPage() {
   const { id } = useParams()
@@ -58,31 +57,45 @@ export function ReportPage() {
   const completed = report.pipeline_status === 'completed'
 
   return (
-    <section className="space-y-6 report-print">
-      <div className="flex flex-wrap items-end justify-between gap-3 no-print">
-        <div>
-          <p className="text-xs uppercase tracking-[0.16em] text-[var(--accent-2)]">
-            Verification report
-          </p>
-          <h1 className="brand mt-1 text-3xl md:text-4xl">
-            {report.verdict ?? 'PENDING'}
-          </h1>
-          <p className="mt-2 max-w-3xl text-[var(--muted)]">{report.claim}</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="rounded-md border border-[var(--line)] bg-[var(--panel)] px-4 py-2 text-sm font-semibold"
-          >
-            Print / Save PDF
-          </button>
-          <Link
-            to="/verify"
-            className="rounded-md border border-[var(--line)] bg-[var(--panel)] px-4 py-2 text-sm font-semibold"
-          >
-            New verification
-          </Link>
+    <section className="space-y-8 report-print">
+      <div className="verdict-banner no-print ui-shell relative overflow-hidden rounded-[1.75rem] p-6 md:p-8">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-10 -top-16 h-56 w-56 rounded-full border border-current opacity-20"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-2 top-6 h-36 w-36 rounded-full border border-dashed border-current opacity-30"
+        />
+        <div className="relative flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--accent-2)]">
+              Optical verification stamp
+            </p>
+            <h1
+              className={`brand mt-2 text-5xl leading-none md:text-7xl ${verdictTone(report.verdict)}`}
+            >
+              {report.verdict ?? 'PENDING'}
+            </h1>
+            <p className="mt-4 max-w-3xl text-base text-[var(--muted)]">
+              {report.claim}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="rounded-xl border border-[var(--line)] bg-[var(--panel)] px-4 py-2 text-sm font-bold"
+            >
+              Print / Save PDF
+            </button>
+            <Link
+              to="/verify"
+              className="rounded-xl bg-[var(--ink)] px-4 py-2 text-sm font-bold text-[var(--panel)]"
+            >
+              New verification
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -94,30 +107,40 @@ export function ReportPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <ScoreCard
+        <CircularMeter
           label="Credibility"
-          value={report.credibility_score?.toFixed(1) ?? '—'}
+          value={report.credibility_score}
           hint="How well-supported the claim appears"
+          tone="accent"
+          delayMs={0}
         />
-        <ScoreCard
+        <CircularMeter
           label="Confidence"
-          value={report.confidence_score?.toFixed(1) ?? '—'}
+          value={report.confidence_score}
           hint="How sure the system is in this conclusion"
+          tone="ember"
+          delayMs={140}
         />
-        <ScoreCard
+        <CircularMeter
           label="Risk"
-          value={report.risk_level ?? '—'}
-          hint={
-            report.risk_score != null
-              ? `Score ${report.risk_score.toFixed(1)}/100`
-              : 'Decision risk'
-          }
+          value={report.risk_score}
+          hint={report.risk_level ? `Level ${report.risk_level}` : 'Decision risk'}
+          tone={riskTone(report.risk_level)}
+          delayMs={280}
         />
-        <ScoreCard
-          label="Category"
-          value={report.claim_category ?? 'general'}
-          hint={`${report.processing_ms ?? '—'} ms · ${report.input_type}`}
-        />
+        <div className="ui-shell ui-interactive flex flex-col justify-between rounded-3xl p-5">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--muted)]">
+              Category
+            </p>
+            <p className="brand mt-3 text-4xl text-[var(--ink)]">
+              {report.claim_category ?? 'general'}
+            </p>
+          </div>
+          <p className="mt-6 text-xs text-[var(--muted)]">
+            {report.processing_ms ?? '—'} ms · {report.input_type}
+          </p>
+        </div>
       </div>
 
       <div className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-5">

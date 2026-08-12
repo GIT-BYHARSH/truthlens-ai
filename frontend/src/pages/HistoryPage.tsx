@@ -45,7 +45,7 @@ export function HistoryPage() {
             <Link
               key={item.id}
               to={`/report/${item.id}`}
-              className="block rounded-2xl border border-[var(--line)] bg-[var(--panel)] px-4 py-4 transition hover:border-[var(--accent)]"
+              className="ui-shell ui-interactive block rounded-2xl px-4 py-4"
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="font-semibold">{item.verdict ?? 'PENDING'}</p>

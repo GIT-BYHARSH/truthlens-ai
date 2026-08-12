@@ -41,10 +41,12 @@ export function AnalyticsPage() {
   return (
     <section className="space-y-6">
       <div>
-        <h1 className="brand text-3xl md:text-4xl">Analytics</h1>
-        <p className="mt-2 max-w-2xl text-[var(--muted)]">
-          KPIs and Plotly charts use completed verifications only — never
-          fabricated.
+        <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--accent-2)]">
+          Signal board
+        </p>
+        <h1 className="brand mt-2 text-4xl md:text-5xl">Analytics</h1>
+        <p className="mt-3 max-w-2xl text-[var(--muted)]">
+          Live Plotly charts from completed verifications — never fabricated.
         </p>
       </div>
 
@@ -61,40 +63,55 @@ export function AnalyticsPage() {
       {summary && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           {[
-            ['Total verifications', String(summary.total_verifications)],
+            ['Total verifications', String(summary.total_verifications), 'accent'],
             [
               'Avg credibility',
               summary.avg_credibility == null
                 ? '—'
                 : summary.avg_credibility.toFixed(1),
+              'accent',
             ],
             [
               'Avg confidence',
               summary.avg_confidence == null
                 ? '—'
                 : summary.avg_confidence.toFixed(1),
+              'ember',
             ],
             [
               'High-risk share',
               summary.high_risk_share == null
                 ? '—'
                 : `${(summary.high_risk_share * 100).toFixed(0)}%`,
+              'danger',
             ],
             [
               'Insufficient evidence',
               summary.insufficient_evidence_share == null
                 ? '—'
                 : `${(summary.insufficient_evidence_share * 100).toFixed(0)}%`,
+              'warn',
             ],
-          ].map(([label, value]) => (
-            <div
-              key={label}
-              className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-4"
-            >
-              <p className="text-xs uppercase tracking-wide text-[var(--muted)]">
+          ].map(([label, value, tone]) => (
+            <div key={label} className="ui-shell ui-interactive rounded-3xl p-4">
+              <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--muted)]">
                 {label}
               </p>
-              <p className="brand mt-2 text-3xl">{value}</p>
+              <p
+                className="brand mt-3 text-4xl"
+                style={{
+                  color:
+                    tone === 'ember'
+                      ? 'var(--accent-2)'
+                      : tone === 'danger'
+                        ? 'var(--danger)'
+                        : tone === 'warn'
+                          ? 'var(--warn)'
+                          : 'var(--accent)',
+                }}
+              >
+                {value}
+              </p>
             </div>
           ))}
         </div>
