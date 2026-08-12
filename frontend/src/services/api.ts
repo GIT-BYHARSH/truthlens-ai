@@ -123,6 +123,20 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ url, session_id: sessionId ?? null }),
     }),
+  verifyImage: async (file: File, sessionId?: string) => {
+    const form = new FormData()
+    form.append('file', file)
+    if (sessionId) form.append('session_id', sessionId)
+    const response = await fetch(`${API_BASE}/verify/image`, {
+      method: 'POST',
+      body: form,
+    })
+    if (!response.ok) {
+      const detail = await response.text()
+      throw new Error(detail || `Request failed (${response.status})`)
+    }
+    return response.json() as Promise<VerificationReport>
+  },
   listVerifications: (page = 1) =>
     request<PaginatedVerifications>(`/verifications?page=${page}&page_size=20`),
   getVerification: (id: string) =>

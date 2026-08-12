@@ -88,8 +88,17 @@ export function ReportPage() {
         />
       </div>
 
-      <div className="rounded-2xl border border-[var(--accent)]/30 bg-[var(--panel)] p-5">
-        <h2 className="brand text-2xl">Recommended action</h2>
+      {report.extracted_text && report.input_type === 'image' && (
+        <div className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-5">
+          <h2 className="brand text-2xl">OCR extracted text</h2>
+          <p className="mt-2 text-xs uppercase tracking-wide text-[var(--muted)]">
+            EasyOCR extracts text only — it does not prove image authenticity
+          </p>
+          <p className="mt-3 whitespace-pre-wrap text-sm text-[var(--muted)]">
+            {report.extracted_text}
+          </p>
+        </div>
+      )}
         <p className="mt-2 text-[var(--ink)]">{report.recommendation_text}</p>
         {report.recommendation_code && (
           <p className="mt-2 text-xs uppercase tracking-wide text-[var(--muted)]">

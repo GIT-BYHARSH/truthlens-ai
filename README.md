@@ -32,7 +32,7 @@ User input (text / image / URL)
 |-------|--------|--------|
 | 1 | Architecture, DB, API/frontend shells, scoring engines | **Done** |
 | 2 | Text + URL verify, Gemini JSON, evidence provider | **Done (core)** |
-| 3 | Image + EasyOCR | Planned |
+| 3 | Image + EasyOCR | **Done** |
 | 4 | Full scoring wiring in live pipeline | **Done** |
 | 5 | History analytics + Plotly / dashboard | Partial (live KPIs) |
 | 6 | Hardening, tests, docs polish | Ongoing |

@@ -11,12 +11,12 @@ from app.models.verification import Verification
 from app.schemas.common import (
     EvidenceOut,
     ExplanationOut,
-    PhaseStubOut,
     TextVerifyRequest,
     UrlVerifyRequest,
     VerificationReportOut,
 )
 from app.services.pipeline import VerificationPipeline
+from app.services.uploads import save_upload_image
 
 router = APIRouter()
 pipeline = VerificationPipeline()
@@ -77,16 +77,21 @@ async def verify_url(
     return _to_report(row)
 
 
-@router.post("/image", response_model=PhaseStubOut)
+@router.post("/image", response_model=VerificationReportOut)
 async def verify_image(
     file: UploadFile = File(...),
     session_id: str | None = Form(default=None),
-) -> PhaseStubOut:
-    _ = (file, session_id)
-    return PhaseStubOut(
-        phase="phase-3",
-        message="Image verification will use EasyOCR, then the shared verification pipeline.",
-    )
+    db: AsyncSession = Depends(get_db),
+) -> VerificationReportOut:
+    saved = await save_upload_image(file)
+    result = await pipeline.run_image(db, str(saved), session_id=session_id)
+    if result.status != PipelineStatus.COMPLETED or not result.verification_id:
+        raise HTTPException(
+            status_code=400,
+            detail=result.message or "Image verification failed",
+        )
+    row = await _load(db, result.verification_id)
+    return _to_report(row)
 
 
 async def _load(db: AsyncSession, verification_id) -> Verification:

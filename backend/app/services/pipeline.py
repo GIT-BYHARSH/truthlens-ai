@@ -21,7 +21,9 @@ from app.core.enums import (
 from app.evidence.ranker import rank_evidence
 from app.evidence.retriever import EvidenceRetriever, RawEvidence
 from app.models.evidence import EvidenceItem
+from app.models.ocr import OcrArtifact
 from app.models.verification import Verification
+from app.ocr.service import OcrService
 from app.recommendations.engine import recommend_action
 from app.risk.engine import RiskInputs, compute_risk
 from app.schemas.common import ExplanationOut
@@ -33,7 +35,6 @@ from app.services.signals import (
     build_confidence_inputs,
     build_credibility_inputs,
 )
-
 
 @dataclass
 class PipelineResult:
@@ -57,6 +58,7 @@ class VerificationPipeline:
     def __init__(self) -> None:
         self.gemini = GeminiClient()
         self.retriever = EvidenceRetriever()
+        self.ocr = OcrService(languages=["en"], gpu=False)
 
     async def run_text(
         self,
@@ -245,6 +247,68 @@ class VerificationPipeline:
             message="Verification completed.",
             errors=errors,
         )
+
+    async def run_image(
+        self,
+        db: AsyncSession,
+        image_path: str,
+        session_id: str | None = None,
+    ) -> PipelineResult:
+        """
+        Image → EasyOCR text extraction → shared verification pipeline.
+        OCR extracts text only; it does not prove authenticity.
+        """
+        try:
+            ocr = await self.ocr.extract_text(image_path)
+        except Exception as exc:  # noqa: BLE001
+            await log_event(db, SystemEventType.OCR_FAIL.value, str(exc))
+            await db.commit()
+            return PipelineResult(
+                status=PipelineStatus.FAILED,
+                message=f"OCR failed: {exc}",
+                errors=["ocr_fail"],
+            )
+
+        if len(ocr.text.strip()) < 8:
+            await log_event(
+                db,
+                SystemEventType.OCR_FAIL.value,
+                "OCR returned insufficient text for claim verification",
+            )
+            await db.commit()
+            return PipelineResult(
+                status=PipelineStatus.FAILED,
+                message=(
+                    "Could not extract enough text from the image. "
+                    "Try a clearer screenshot with readable claim text."
+                ),
+                errors=["ocr_empty"],
+            )
+
+        claim_text = (
+            "Claim text extracted from uploaded image via OCR "
+            "(OCR does not authenticate the image):\n"
+            f"{ocr.text.strip()}"
+        )
+        result = await self.run_text(db, claim_text, session_id=session_id)
+        if result.verification_id:
+            row = await db.get(Verification, result.verification_id)
+            if row:
+                row.input_type = InputType.IMAGE.value
+                row.original_input_ref = image_path
+                row.extracted_text = ocr.text.strip()
+                db.add(
+                    OcrArtifact(
+                        verification_id=row.id,
+                        image_path=image_path,
+                        image_hash=ocr.image_hash,
+                        ocr_text=ocr.text,
+                        ocr_confidence=ocr.confidence,
+                        engine_meta=ocr.engine_meta,
+                    )
+                )
+                await db.commit()
+        return result
 
     async def run_url(
         self,
