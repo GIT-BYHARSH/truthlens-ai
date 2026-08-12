@@ -29,6 +29,7 @@ Rules:
 - If mixed -> PARTIALLY_SUPPORTED
 - If evidence is empty/too weak -> INSUFFICIENT_EVIDENCE
 - Be conservative, but do not refuse to refute an obviously contradicted claim when evidence is present.
+- If a reputable snippet explicitly states the claim facts (event, date, place), prefer SUPPORTED over INSUFFICIENT_EVIDENCE.
 - Keep reasoning_summary short and auditable. No hidden chain-of-thought.
 """.strip()
 

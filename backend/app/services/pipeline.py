@@ -20,6 +20,7 @@ from app.core.enums import (
 )
 from app.evidence.ranker import rank_evidence
 from app.evidence.retriever import EvidenceRetriever, RawEvidence
+from app.evidence.enrich import enrich_evidence_snippets, rank_by_claim_relevance
 from app.models.evidence import EvidenceItem
 from app.models.ocr import OcrArtifact
 from app.models.verification import Verification
@@ -91,6 +92,11 @@ class VerificationPipeline:
 
         try:
             evidence = await self.retriever.retrieve(cleaned)
+            if evidence:
+                evidence = rank_by_claim_relevance(cleaned, evidence)
+                evidence = await enrich_evidence_snippets(
+                    evidence, claim=cleaned, limit=6
+                )
             if not evidence:
                 await log_event(
                     db,
@@ -113,7 +119,7 @@ class VerificationPipeline:
                 "url": e.url,
                 "title": e.title,
                 "domain": e.domain,
-                "snippet": e.snippet,
+                "snippet": (e.snippet or "")[:900],
                 "source_reliability_score": e.source_reliability_score,
             }
             for e in evidence

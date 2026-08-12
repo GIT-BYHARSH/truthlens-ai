@@ -73,6 +73,15 @@ def build_search_queries(claim: str) -> list[str]:
             ]
         )
 
+    if re.search(r"chandrayaan|lunar|moon", cleaned, flags=re.I):
+        queries.extend(
+            [
+                "Chandrayaan-3 landing lunar south pole August 2023",
+                "Chandrayaan-3 successfully landed Moon south pole",
+                "ISRO Chandrayaan-3 soft landing",
+            ]
+        )
+
     tokens = [
         t
         for t in re.findall(r"[A-Za-z0-9\-]+", cleaned)
@@ -288,16 +297,24 @@ class EvidenceRetriever:
                 snippet = re.sub("<[^<]+?>", "", page.get("snippet") or "")
                 url = f"https://en.wikipedia.org/wiki/{quote(title.replace(' ', '_'))}"
                 try:
-                    summary = await client.get(
-                        "https://en.wikipedia.org/api/rest_v1/page/summary/"
-                        f"{quote(title)}"
+                    extract = await client.get(
+                        "https://en.wikipedia.org/w/api.php",
+                        params={
+                            "action": "query",
+                            "format": "json",
+                            "prop": "extracts",
+                            "explaintext": 1,
+                            "exchars": 1200,
+                            "titles": title,
+                        },
                     )
-                    if summary.status_code == 200:
-                        payload = summary.json()
-                        snippet = (payload.get("extract") or snippet)[:500]
-                        url = payload.get("content_urls", {}).get("desktop", {}).get(
-                            "page", url
-                        )
+                    if extract.status_code == 200:
+                        pages_map = extract.json().get("query", {}).get("pages", {})
+                        for page_data in pages_map.values():
+                            long_extract = (page_data.get("extract") or "").strip()
+                            if long_extract:
+                                snippet = long_extract[:1200]
+                                break
                 except Exception:  # noqa: BLE001
                     pass
                 evidence.append(self._from_hit(url, title, snippet, idx))
