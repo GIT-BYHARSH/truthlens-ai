@@ -21,6 +21,15 @@ function ScoreCard({
   )
 }
 
+const PIPELINE_STEPS = [
+  'Input validated',
+  'Claim normalized',
+  'Evidence retrieved & enriched',
+  'Gemini structured reasoning',
+  'Credibility / confidence / risk engines',
+  'Action recommendation persisted',
+]
+
 export function ReportPage() {
   const { id } = useParams()
   const [report, setReport] = useState<VerificationReport | null>(null)
@@ -46,23 +55,42 @@ export function ReportPage() {
   const supporting = report.evidence.filter((e) => e.evidence_type === 'support')
   const contradicting = report.evidence.filter((e) => e.evidence_type === 'contradict')
   const neutral = report.evidence.filter((e) => e.evidence_type === 'neutral')
+  const completed = report.pipeline_status === 'completed'
 
   return (
-    <section className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+    <section className="space-y-6 report-print">
+      <div className="flex flex-wrap items-end justify-between gap-3 no-print">
         <div>
           <p className="text-xs uppercase tracking-[0.16em] text-[var(--accent-2)]">
             Verification report
           </p>
-          <h1 className="brand mt-1 text-3xl md:text-4xl">{report.verdict ?? 'PENDING'}</h1>
+          <h1 className="brand mt-1 text-3xl md:text-4xl">
+            {report.verdict ?? 'PENDING'}
+          </h1>
           <p className="mt-2 max-w-3xl text-[var(--muted)]">{report.claim}</p>
         </div>
-        <Link
-          to="/verify"
-          className="rounded-md border border-[var(--line)] bg-[var(--panel)] px-4 py-2 text-sm font-semibold"
-        >
-          New verification
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="rounded-md border border-[var(--line)] bg-[var(--panel)] px-4 py-2 text-sm font-semibold"
+          >
+            Print / Save PDF
+          </button>
+          <Link
+            to="/verify"
+            className="rounded-md border border-[var(--line)] bg-[var(--panel)] px-4 py-2 text-sm font-semibold"
+          >
+            New verification
+          </Link>
+        </div>
+      </div>
+
+      <div className="print-only hidden">
+        <p className="brand text-2xl text-[var(--accent)]">TruthLens AI</p>
+        <h1 className="brand mt-1 text-3xl">{report.verdict ?? 'PENDING'}</h1>
+        <p className="mt-2 text-[var(--muted)]">{report.claim}</p>
+        <p className="mt-1 text-xs text-[var(--muted)]">Report ID: {report.id}</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -79,13 +107,66 @@ export function ReportPage() {
         <ScoreCard
           label="Risk"
           value={report.risk_level ?? '—'}
-          hint={report.risk_score != null ? `Score ${report.risk_score.toFixed(1)}/100` : 'Decision risk'}
+          hint={
+            report.risk_score != null
+              ? `Score ${report.risk_score.toFixed(1)}/100`
+              : 'Decision risk'
+          }
         />
         <ScoreCard
           label="Category"
           value={report.claim_category ?? 'general'}
           hint={`${report.processing_ms ?? '—'} ms · ${report.input_type}`}
         />
+      </div>
+
+      <div className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-5">
+        <h2 className="brand text-2xl">Why these scores can diverge</h2>
+        <p className="mt-2 text-sm text-[var(--muted)]">
+          Faculty/viva point: a single “AI confidence” number is not enough.
+          TruthLens keeps support strength and certainty separate.
+        </p>
+        <ul className="mt-4 grid gap-3 text-sm text-[var(--muted)] md:grid-cols-3">
+          <li>
+            <span className="font-semibold text-[var(--ink)]">Credibility</span>
+            <br />
+            Backed by evidence quality and contradictions — not Gemini alone.
+          </li>
+          <li>
+            <span className="font-semibold text-[var(--ink)]">Confidence</span>
+            <br />
+            Certainty in the verdict given coverage and model signal.
+          </li>
+          <li>
+            <span className="font-semibold text-[var(--ink)]">Risk</span>
+            <br />
+            Decision caution if someone acted on this report.
+          </li>
+        </ul>
+      </div>
+
+      <div className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-5">
+        <h2 className="brand text-2xl">Pipeline trace</h2>
+        <p className="mt-1 text-xs uppercase tracking-wide text-[var(--muted)]">
+          Status: {report.pipeline_status}
+        </p>
+        <ol className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {PIPELINE_STEPS.map((step, index) => (
+            <li
+              key={step}
+              className={`rounded-xl border px-3 py-2 text-sm ${
+                completed
+                  ? 'border-[var(--accent)]/40 bg-[var(--accent)]/5 text-[var(--ink)]'
+                  : 'border-[var(--line)] text-[var(--muted)]'
+              }`}
+            >
+              <span className="text-xs font-semibold text-[var(--accent-2)]">
+                {index + 1}.
+              </span>{' '}
+              {step}
+            </li>
+          ))}
+        </ol>
       </div>
 
       {report.extracted_text && report.input_type === 'image' && (
@@ -123,12 +204,48 @@ export function ReportPage() {
             <p className="mt-3 text-sm text-[var(--muted)]">
               {report.explanation.confidence_rationale}
             </p>
+            {report.explanation.supporting_points?.length > 0 && (
+              <>
+                <h3 className="mt-4 text-sm font-semibold text-[var(--ink)]">
+                  Supporting points
+                </h3>
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-[var(--muted)]">
+                  {report.explanation.supporting_points.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </>
+            )}
+            {report.explanation.contradicting_points?.length > 0 && (
+              <>
+                <h3 className="mt-4 text-sm font-semibold text-[var(--ink)]">
+                  Contradicting points
+                </h3>
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-[var(--muted)]">
+                  {report.explanation.contradicting_points.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </>
+            )}
           </div>
           <div className="rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-5">
             <h2 className="brand text-2xl">Uncertainties & sources</h2>
             <p className="mt-3 text-sm text-[var(--muted)]">
               {report.explanation.source_reasoning}
             </p>
+            {report.explanation.key_evidence?.length > 0 && (
+              <>
+                <h3 className="mt-4 text-sm font-semibold text-[var(--ink)]">
+                  Key evidence
+                </h3>
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-[var(--muted)]">
+                  {report.explanation.key_evidence.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </>
+            )}
             <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-[var(--muted)]">
               {report.explanation.uncertainties.map((item) => (
                 <li key={item}>{item}</li>
@@ -170,8 +287,8 @@ function EvidenceBlock({
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="font-medium">{item.title || item.domain || 'Source'}</p>
                 <p className="text-xs text-[var(--muted)]">
-                  reliability {item.source_reliability_score?.toFixed(0) ?? '—'} · relevance{' '}
-                  {item.relevance_score?.toFixed(0) ?? '—'}
+                  reliability {item.source_reliability_score?.toFixed(0) ?? '—'} ·
+                  relevance {item.relevance_score?.toFixed(0) ?? '—'}
                 </p>
               </div>
               {item.snippet && (

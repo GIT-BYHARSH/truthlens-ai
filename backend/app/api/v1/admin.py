@@ -8,9 +8,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.enums import PipelineStatus
+from app.models.evidence import EvidenceItem
+from app.models.ocr import OcrArtifact
 from app.models.system_event import SystemEvent
 from app.models.verification import Verification
-from app.schemas.common import AdminOverviewOut, SystemEventOut
+from app.schemas.common import AdminOverviewOut, DemoResetOut, SystemEventOut
 
 router = APIRouter()
 
@@ -60,3 +62,30 @@ async def admin_events(
         select(SystemEvent).order_by(SystemEvent.created_at.desc()).limit(limit)
     )
     return [SystemEventOut.model_validate(e) for e in result.scalars().all()]
+
+
+@router.post("/demo-reset", response_model=DemoResetOut)
+async def admin_demo_reset(
+    confirm: bool = Query(False),
+    db: AsyncSession = Depends(get_db),
+) -> DemoResetOut:
+    """
+    Clear verification history for a clean viva/demo Analytics view.
+    Deletes evidence/OCR via FK cascade; system events keep messages with NULL verification_id.
+    """
+    if not confirm:
+        return DemoResetOut(
+            deleted_verifications=0,
+            message="Pass confirm=true to delete all verifications.",
+        )
+
+    count = await db.scalar(select(func.count()).select_from(Verification)) or 0
+    # Explicit child deletes for drivers that don't honor ORM cascade on bulk delete.
+    await db.execute(EvidenceItem.__table__.delete())
+    await db.execute(OcrArtifact.__table__.delete())
+    await db.execute(Verification.__table__.delete())
+    await db.commit()
+    return DemoResetOut(
+        deleted_verifications=count,
+        message=f"Deleted {count} verification(s). Re-run the 3 demo claims before Analytics.",
+    )

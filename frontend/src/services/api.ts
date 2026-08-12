@@ -56,6 +56,19 @@ export type AdminOverview = {
   event_counts: Record<string, number>
 }
 
+export type SystemEvent = {
+  id: string
+  event_type: string
+  verification_id: string | null
+  message: string
+  created_at: string
+}
+
+export type DemoResetResult = {
+  deleted_verifications: number
+  message: string
+}
+
 export type EvidenceItem = {
   id: string
   url: string | null
@@ -126,6 +139,12 @@ export const api = {
   insights: () => request<Insight[]>('/analytics/insights'),
   analyticsTrends: () => request<AnalyticsTrends>('/analytics/trends'),
   adminOverview: () => request<AdminOverview>('/admin/overview'),
+  adminEvents: (limit = 30) =>
+    request<SystemEvent[]>(`/admin/events?limit=${limit}`),
+  adminDemoReset: () =>
+    request<DemoResetResult>('/admin/demo-reset?confirm=true', {
+      method: 'POST',
+    }),
   verifyText: (text: string, sessionId?: string) =>
     request<VerificationReport>('/verify/text', {
       method: 'POST',

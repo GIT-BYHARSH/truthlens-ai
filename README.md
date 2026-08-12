@@ -77,8 +77,10 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --app-dir .
 ```
 
-API docs: http://127.0.0.1:8000/docs  
-Health: http://127.0.0.1:8000/api/v1/health
+API docs: http://127.0.0.1:8002/docs  
+Health: http://127.0.0.1:8002/api/v1/health
+
+> On some Windows setups port 8000 is blocked — use **8002** (frontend Vite proxy already targets 8002).
 
 ### 5) Frontend
 
@@ -96,6 +98,19 @@ App: http://127.0.0.1:5173
 cd backend
 pytest ../tests/backend -q
 ```
+
+## 5-minute viva demo
+
+1. Open **Method** — explain credibility ≠ confidence ≠ risk (worked Mumbai example).
+2. **Verify** → use the three demo chips:
+   - Chandrayaan-3 landing → **SUPPORTED**
+   - Capital of India is Mumbai → **REFUTED**
+   - WHO COVID pandemic March 2020 → **SUPPORTED**
+3. On the report: pipeline trace, evidence, **Print / Save PDF**.
+4. **Analytics** — Plotly charts from stored runs.
+5. **Admin** — events; optional **Demo reset** then re-run the three claims for clean KPIs.
+
+Full talking points: [`docs/viva.md`](docs/viva.md)
 
 ## Project structure
 

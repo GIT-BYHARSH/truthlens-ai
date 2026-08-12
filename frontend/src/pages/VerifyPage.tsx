@@ -3,6 +3,21 @@ import type { FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../services/api'
 
+const DEMO_CLAIMS = [
+  {
+    label: 'Supported · Chandrayaan-3',
+    text: 'India successfully landed Chandrayaan-3 near the lunar south pole in August 2023.',
+  },
+  {
+    label: 'Refuted · Mumbai capital',
+    text: 'The capital of India is Mumbai.',
+  },
+  {
+    label: 'Supported · WHO pandemic',
+    text: 'The World Health Organization declared COVID-19 a pandemic in March 2020.',
+  },
+]
+
 type Tab = 'text' | 'image' | 'url'
 
 export function VerifyPage() {
@@ -79,15 +94,29 @@ export function VerifyPage() {
         className="space-y-4 rounded-2xl border border-[var(--line)] bg-[var(--panel)] p-5 shadow-sm"
       >
         {tab === 'text' && (
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            rows={7}
-            placeholder='Example: "Company X has announced that it will stop hiring in 2026."'
-            className="w-full rounded-lg border border-[var(--line)] bg-white px-3 py-3 text-sm outline-none ring-[var(--accent)] focus:ring-2"
-            required
-            minLength={8}
-          />
+          <>
+            <div className="flex flex-wrap gap-2">
+              {DEMO_CLAIMS.map((demo) => (
+                <button
+                  key={demo.label}
+                  type="button"
+                  onClick={() => setText(demo.text)}
+                  className="rounded-md border border-[var(--line)] bg-white px-3 py-1.5 text-xs font-semibold text-[var(--muted)] transition hover:border-[var(--accent)] hover:text-[var(--ink)]"
+                >
+                  {demo.label}
+                </button>
+              ))}
+            </div>
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              rows={7}
+              placeholder='Example: "Company X has announced that it will stop hiring in 2026."'
+              className="w-full rounded-lg border border-[var(--line)] bg-white px-3 py-3 text-sm outline-none ring-[var(--accent)] focus:ring-2"
+              required
+              minLength={8}
+            />
+          </>
         )}
         {tab === 'url' && (
           <input

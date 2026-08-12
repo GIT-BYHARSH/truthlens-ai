@@ -148,6 +148,11 @@ class SystemEventOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class DemoResetOut(BaseModel):
+    deleted_verifications: int
+    message: str
+
+
 class PhaseStubOut(BaseModel):
     """Returned by endpoints not fully implemented in Phase 1."""
 
