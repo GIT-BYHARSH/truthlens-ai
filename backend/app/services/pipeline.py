@@ -139,15 +139,23 @@ class VerificationPipeline:
                 claim_normalized=cleaned[:500],
                 claim_category="general",
                 verdict=Verdict.INSUFFICIENT_EVIDENCE,
-                model_confidence=0.35,
+                model_confidence=0.25,
                 claim_summary=cleaned[:280],
                 reasoning_summary=(
-                    "Model reasoning unavailable or invalid. "
-                    "System defaulted to insufficient evidence."
+                    "AI structured reasoning failed after retries "
+                    f"({exc}). The system did not invent a verdict. "
+                    f"Retrieved evidence count at failure time: {len(evidence)}."
                 ),
                 supporting_points=[],
                 contradicting_points=[],
-                uncertainties=["Gemini analysis failed or returned invalid JSON."],
+                uncertainties=[
+                    "Gemini analysis failed or returned invalid JSON after retries.",
+                    (
+                        "No external evidence was available."
+                        if not evidence
+                        else "Evidence was available, but model validation failed."
+                    ),
+                ],
                 evidence_labels=[],
                 category_sensitivity=40.0,
             )

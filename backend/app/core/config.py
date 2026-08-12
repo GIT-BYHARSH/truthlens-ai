@@ -30,7 +30,7 @@ class Settings(BaseSettings):
 
     gemini_api_key: str = ""
     gemini_model: str = "gemini-3.5-flash"
-    gemini_timeout_seconds: int = 60
+    gemini_timeout_seconds: int = 90
 
     evidence_provider: Literal["none", "serper", "tavily"] = "none"
     serper_api_key: str = ""
