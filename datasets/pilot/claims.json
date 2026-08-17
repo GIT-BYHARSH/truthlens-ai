@@ -1,0 +1,72 @@
+[
+  {
+    "id": "c01",
+    "claim": "India successfully landed Chandrayaan-3 near the lunar south pole in August 2023.",
+    "gold_label": "SUPPORTED",
+    "category": "science",
+    "notes": "Well-documented factual claim"
+  },
+  {
+    "id": "c02",
+    "claim": "The capital of India is Mumbai.",
+    "gold_label": "REFUTED",
+    "category": "general",
+    "notes": "Classic contradiction case for credibility/confidence split"
+  },
+  {
+    "id": "c03",
+    "claim": "The World Health Organization declared COVID-19 a pandemic in March 2020.",
+    "gold_label": "SUPPORTED",
+    "category": "health",
+    "notes": "Health domain supported claim"
+  },
+  {
+    "id": "c04",
+    "claim": "Water boils at 100 degrees Celsius at standard atmospheric pressure.",
+    "gold_label": "SUPPORTED",
+    "category": "science",
+    "notes": "Basic science fact"
+  },
+  {
+    "id": "c05",
+    "claim": "The Sun revolves around the Earth once every day.",
+    "gold_label": "REFUTED",
+    "category": "science",
+    "notes": "Clearly false astronomical claim"
+  },
+  {
+    "id": "c06",
+    "claim": "New Delhi is the capital of India.",
+    "gold_label": "SUPPORTED",
+    "category": "general",
+    "notes": "Positive control for capital claims"
+  },
+  {
+    "id": "c07",
+    "claim": "Albert Einstein won the Nobel Prize in Physics in 1921.",
+    "gold_label": "SUPPORTED",
+    "category": "science",
+    "notes": "Historical fact"
+  },
+  {
+    "id": "c08",
+    "claim": "Mount Everest is located entirely within the borders of India.",
+    "gold_label": "REFUTED",
+    "category": "general",
+    "notes": "Geographic false claim"
+  },
+  {
+    "id": "c09",
+    "claim": "ISRO successfully launched Chandrayaan-2 soft landing on the Moon in 2019.",
+    "gold_label": "REFUTED",
+    "category": "science",
+    "notes": "Chandrayaan-2 soft landing failed; useful hard negative"
+  },
+  {
+    "id": "c10",
+    "claim": "A secret underground city of 2 million people was discovered under Mumbai in 2024 by NASA.",
+    "gold_label": "REFUTED",
+    "category": "general",
+    "notes": "Fabricated sensational claim"
+  }
+]
