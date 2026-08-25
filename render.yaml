@@ -1,0 +1,38 @@
+# TruthLens AI — Render Blueprint
+# Dashboard: New → Blueprint → connect GIT-BYHARSH/truthlens-ai
+# After first deploy, set secret env vars in the Render dashboard.
+
+services:
+  - type: web
+    name: truthlens-api
+    runtime: docker
+    plan: starter
+    region: oregon
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: API_PREFIX
+        value: /api/v1
+      - key: CREATE_TABLES_ON_STARTUP
+        value: "true"
+      - key: EVIDENCE_PROVIDER
+        value: none
+      - key: GEMINI_MODEL
+        value: gemini-3.5-flash
+      - key: UPLOAD_DIR
+        value: /app/uploads
+      # Set these in the Render dashboard (do not commit secrets):
+      # DATABASE_URL  → Neon string with postgresql+asyncpg:// ... ?ssl=require
+      # GEMINI_API_KEY
+      # CORS_ORIGINS  → https://YOUR-APP.vercel.app,http://localhost:5173
+      - key: DATABASE_URL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false

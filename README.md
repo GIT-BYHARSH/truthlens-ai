@@ -74,13 +74,21 @@ python -m venv .venv
 # Windows:
 .venv\Scripts\activate
 pip install -r requirements.txt
-uvicorn app.main:app --reload --app-dir .
+uvicorn app.main:app --reload --app-dir . --host 127.0.0.1 --port 8002
 ```
 
 API docs: http://127.0.0.1:8002/docs  
 Health: http://127.0.0.1:8002/api/v1/health
 
-> On some Windows setups port 8000 is blocked — use **8002** (frontend Vite proxy already targets 8002).
+> On Windows, always use **8002** (port 8000 is often blocked). The Vite proxy targets 8002.
+
+**One-click local run (Windows):** from the project root:
+
+```powershell
+.\start-dev.ps1
+```
+
+Then open **http://127.0.0.1:5173** (keep both new terminals open).
 
 ### 5) Frontend
 
@@ -92,12 +100,22 @@ npm run dev
 
 App: http://127.0.0.1:5173
 
+Image verify needs the backend running. First EasyOCR call can take 1–2 minutes while models load.
+
 ### 6) Unit tests (scoring)
 
 ```bash
 cd backend
 pytest ../tests/backend -q
 ```
+
+### 7) Public deploy (Render + Vercel)
+
+Step-by-step: [`docs/DEPLOY.md`](docs/DEPLOY.md)
+
+- Backend Docker → Render (`truthlens-api`)
+- Frontend → Vercel (root `frontend`, set `VITE_API_BASE`)
+- Database → Neon (`postgresql+asyncpg://…?ssl=require`)
 
 ## 5-minute viva demo
 
@@ -117,11 +135,14 @@ Full talking points: [`docs/viva.md`](docs/viva.md)
 ```
 truthlens-ai/
 ├── backend/app/     # FastAPI, pipeline, AI, OCR, evidence, scoring, risk, analytics
-├── frontend/        # React + Tailwind
+├── backend/Dockerfile
+├── frontend/        # React + Tailwind (+ vercel.json)
 ├── database/        # SQL migrations
-├── docs/            # Pipeline, scoring, research notes
+├── docs/            # Pipeline, scoring, research, DEPLOY.md
 ├── datasets/        # Dataset notes (no fabricated data)
 ├── tests/
+├── render.yaml      # Render Blueprint
+├── start-dev.ps1    # Local Windows start
 ├── docker-compose.yml
 └── .env.example
 ```

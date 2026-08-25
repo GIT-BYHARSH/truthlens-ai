@@ -1,16 +1,54 @@
 const API_BASE = import.meta.env.VITE_API_BASE ?? '/api/v1'
 
+function friendlyNetworkError(error: unknown): Error {
+  const raw = error instanceof Error ? error.message : String(error)
+  if (
+    raw === 'Failed to fetch' ||
+    raw.includes('NetworkError') ||
+    raw.includes('Network request failed')
+  ) {
+    return new Error(
+      'Cannot reach the TruthLens backend. Start it on port 8002 (run start-dev.ps1), then open http://127.0.0.1:5173 — not a random file path.',
+    )
+  }
+  return error instanceof Error ? error : new Error(raw)
+}
+
+async function parseError(response: Response): Promise<string> {
+  const detail = await response.text()
+  try {
+    const parsed = JSON.parse(detail) as { detail?: unknown }
+    if (typeof parsed.detail === 'string') return parsed.detail
+    if (Array.isArray(parsed.detail)) {
+      return parsed.detail
+        .map((item) =>
+          typeof item === 'object' && item && 'msg' in item
+            ? String((item as { msg: string }).msg)
+            : JSON.stringify(item),
+        )
+        .join('; ')
+    }
+  } catch {
+    /* plain text */
+  }
+  return detail || `Request failed (${response.status})`
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(init?.headers ?? {}),
-    },
-    ...init,
-  })
+  let response: Response
+  try {
+    response = await fetch(`${API_BASE}${path}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(init?.headers ?? {}),
+      },
+      ...init,
+    })
+  } catch (error) {
+    throw friendlyNetworkError(error)
+  }
   if (!response.ok) {
-    const detail = await response.text()
-    throw new Error(detail || `Request failed (${response.status})`)
+    throw new Error(await parseError(response))
   }
   return response.json() as Promise<T>
 }
@@ -159,13 +197,17 @@ export const api = {
     const form = new FormData()
     form.append('file', file)
     if (sessionId) form.append('session_id', sessionId)
-    const response = await fetch(`${API_BASE}/verify/image`, {
-      method: 'POST',
-      body: form,
-    })
+    let response: Response
+    try {
+      response = await fetch(`${API_BASE}/verify/image`, {
+        method: 'POST',
+        body: form,
+      })
+    } catch (error) {
+      throw friendlyNetworkError(error)
+    }
     if (!response.ok) {
-      const detail = await response.text()
-      throw new Error(detail || `Request failed (${response.status})`)
+      throw new Error(await parseError(response))
     }
     return response.json() as Promise<VerificationReport>
   },

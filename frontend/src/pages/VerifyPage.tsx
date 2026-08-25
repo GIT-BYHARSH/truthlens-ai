@@ -22,8 +22,24 @@ const DEMO_CLAIMS = [
   },
 ]
 
+const DEMO_IMAGES = [
+  {
+    label: 'Refuted',
+    title: 'Mumbai OCR',
+    src: '/demo/ocr_refuted_mumbai.png',
+    filename: 'ocr_refuted_mumbai.png',
+  },
+  {
+    label: 'Supported',
+    title: 'Chandrayaan OCR',
+    src: '/demo/ocr_supported_chandrayaan.png',
+    filename: 'ocr_supported_chandrayaan.png',
+  },
+]
+
 const LIVE_STEPS = [
   'Validating input',
+  'OCR (images) / claim prep',
   'Retrieving evidence',
   'Enriching snippets',
   'Gemini structured reasoning',
@@ -43,6 +59,25 @@ export function VerifyPage() {
   const [busy, setBusy] = useState(false)
   const [liveStep, setLiveStep] = useState(0)
   const [selectedDemo, setSelectedDemo] = useState<string | null>(null)
+  const [backendOk, setBackendOk] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    async function check() {
+      try {
+        await api.health()
+        if (!cancelled) setBackendOk(true)
+      } catch {
+        if (!cancelled) setBackendOk(false)
+      }
+    }
+    void check()
+    const id = window.setInterval(check, 12_000)
+    return () => {
+      cancelled = true
+      window.clearInterval(id)
+    }
+  }, [])
 
   useEffect(() => {
     if (!busy) {
@@ -54,6 +89,21 @@ export function VerifyPage() {
     }, 1800)
     return () => window.clearInterval(id)
   }, [busy])
+
+  async function pickDemoImage(demo: (typeof DEMO_IMAGES)[number]) {
+    setSelectedDemo(demo.title)
+    setMessage(`Loading demo image: ${demo.title}…`)
+    try {
+      const response = await fetch(demo.src)
+      if (!response.ok) throw new Error('Demo image missing from frontend/public/demo.')
+      const blob = await response.blob()
+      const file = new File([blob], demo.filename, { type: blob.type || 'image/png' })
+      setImage(file)
+      setMessage(`Ready: ${demo.filename}. Click Run verification.`)
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Could not load demo image.')
+    }
+  }
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault()
@@ -76,7 +126,9 @@ export function VerifyPage() {
         setMessage('Please choose an image file first.')
         return
       }
-      setMessage('Running EasyOCR → claim → evidence → report…')
+      setMessage(
+        'Running EasyOCR → claim → evidence → report… First OCR load can take 1–2 minutes.',
+      )
       const report = await api.verifyImage(image)
       navigate(`/report/${report.id}`)
     } catch (error) {
@@ -96,6 +148,17 @@ export function VerifyPage() {
           Pick a demo claim or write your own. Watch the live pipeline while the
           engines work.
         </p>
+        {backendOk === false && (
+          <p className="mt-3 rounded-xl border border-[var(--danger)]/40 bg-[var(--danger)]/10 px-4 py-3 text-sm text-[var(--danger)]">
+            Backend offline. Keep API running on port 8002, then refresh. From
+            project root: <code className="font-semibold">.\start-dev.ps1</code>
+          </p>
+        )}
+        {backendOk === true && (
+          <p className="mt-3 text-xs font-semibold text-[var(--accent)]">
+            Backend connected
+          </p>
+        )}
       </div>
 
       <div className="inline-flex rounded-xl border border-[var(--line)] bg-[var(--panel)] p-1">
@@ -177,26 +240,61 @@ export function VerifyPage() {
         )}
 
         {tab === 'image' && (
-          <label className="ui-shell ui-interactive flex cursor-pointer flex-col items-start gap-2 rounded-2xl border-dashed p-6">
-            <span className="text-sm font-bold text-[var(--ink)]">
-              Drop or choose an image
-            </span>
-            <span className="text-xs text-[var(--muted)]">
-              EasyOCR extracts text only — not authenticity.
-            </span>
-            <input
-              type="file"
-              accept="image/png,image/jpeg,image/jpg,image/webp,image/bmp"
-              onChange={(e) => setImage(e.target.files?.[0] ?? null)}
-              className="mt-2 block w-full text-sm text-[var(--muted)]"
-              required
-            />
-            {image && (
-              <span className="text-xs font-semibold text-[var(--accent)]">
-                {image.name} ({Math.round(image.size / 1024)} KB)
+          <>
+            <div className="grid gap-3 md:grid-cols-2">
+              {DEMO_IMAGES.map((demo) => {
+                const active = selectedDemo === demo.title
+                return (
+                  <button
+                    key={demo.title}
+                    type="button"
+                    onClick={() => void pickDemoImage(demo)}
+                    className={`ui-shell ui-interactive rounded-2xl p-4 text-left ${
+                      active ? 'border-[var(--accent)] ring-2 ring-[var(--accent)]/30' : ''
+                    }`}
+                  >
+                    <p
+                      className={`text-xs font-bold uppercase tracking-[0.14em] ${
+                        demo.label === 'Refuted'
+                          ? 'text-[var(--danger)]'
+                          : 'text-[var(--accent)]'
+                      }`}
+                    >
+                      Expect {demo.label}
+                    </p>
+                    <p className="brand mt-2 text-xl">{demo.title}</p>
+                    <p className="mt-2 text-xs text-[var(--muted)]">
+                      Loads a ready OCR demo image for viva.
+                    </p>
+                  </button>
+                )
+              })}
+            </div>
+            <label className="ui-shell ui-interactive flex cursor-pointer flex-col items-start gap-2 rounded-2xl border-dashed p-6">
+              <span className="text-sm font-bold text-[var(--ink)]">
+                Drop or choose an image
               </span>
-            )}
-          </label>
+              <span className="text-xs text-[var(--muted)]">
+                EasyOCR extracts text only — not authenticity. Prefer clear
+                screenshots with readable claim text.
+              </span>
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/jpg,image/webp,image/bmp"
+                onChange={(e) => {
+                  setImage(e.target.files?.[0] ?? null)
+                  setSelectedDemo(null)
+                }}
+                className="mt-2 block w-full text-sm text-[var(--muted)]"
+                required={!image}
+              />
+              {image && (
+                <span className="text-xs font-semibold text-[var(--accent)]">
+                  {image.name} ({Math.round(image.size / 1024)} KB)
+                </span>
+              )}
+            </label>
+          </>
         )}
 
         <button
